@@ -69,12 +69,12 @@ function(
 
         connectOutlets: function(router) {
           // HACK: Set-up periodic refreshing of client state
-          if(! App.interval) {
-            App.interval = setInterval(function(){
-              id = App.router.currentState.client.get('id');
-              App.store.get("_adapter").find(App.store,App.Client,id);
-            }, 1000*10);
-          }
+          // if(! App.interval) {
+          //   App.interval = setInterval(function(){
+          //     id = App.router.currentState.client.get('id');
+          //     App.store.get("_adapter").find(App.store,App.Client,id);
+          //   }, 1000*10);
+          // }
 
           this.client =  App.Client.find('robots');
           router.get('applicationController')

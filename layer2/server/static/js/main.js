@@ -11,6 +11,8 @@ requirejs.config({
     emberdata    : 'libs/ember-data',
     // Require.js Plugins
     text         : 'libs/text',
+    // socket.io
+    io           : 'libs/socket.io',
     // ROS
     eventemitter2 : 'libs/eventemitter2',
     ROS           : 'libs/ros',

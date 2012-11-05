@@ -159,6 +159,7 @@ INSTALLED_APPS = (
 
     # Server applications
     'world',
+    'sockets',
 )
 
 # A sample logging configuration. The only tangible logging
