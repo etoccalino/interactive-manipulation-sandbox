@@ -1,13 +1,20 @@
 define([
   'ember',
-  'emberdata'
+  'emberdata',
+  'io'
 ],
-function(
-  Ember,
-  DS
-) {
+function( Ember, DS, io) {
+
   var App = Ember.Application.create({
-    autoinit: false
+    autoinit: false,
+    ready: function() {
+      console.log("trying to connect ...");
+      var socket = io.connect("/client");
+      socket.on('connect',function(){
+        console.log("connected and emitted");
+        socket.emit("new_context", "blah");
+      });
+    }
   });
   window.TheApp = App;
 

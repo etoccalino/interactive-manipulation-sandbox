@@ -6,6 +6,9 @@
 # local_settings.py in the layer2/server/server directory and override any settings you
 # need in that file
 
+WSGI_HOSTNAME = '0.0.0.0'
+WSTI_PORT = 8000
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -156,6 +159,7 @@ INSTALLED_APPS = (
 
     # Server applications
     'world',
+    'sockets',
 )
 
 # A sample logging configuration. The only tangible logging
