@@ -68,6 +68,12 @@ function(
         showRobot: Ember.Route.transitionTo('navigate'),
 
         connectOutlets: function(router) {
+          //  New HACK for synchronizing current UI view.
+          //  This needs to be done in connectOutlet for each route
+          //  until I can figure out how to add an observer for this
+          App.setClientContext('robots');
+
+          // DEPRECATED. Left here for reference only
           // HACK: Set-up periodic refreshing of client state
           // if(! App.interval) {
           //   App.interval = setInterval(function(){
@@ -75,8 +81,8 @@ function(
           //     App.store.get("_adapter").find(App.store,App.Client,id);
           //   }, 1000*10);
           // }
+          // this.client =  App.Client.find('robots');
 
-          this.client =  App.Client.find('robots');
           router.get('applicationController')
             .connectOutlet('content', 'robots', App.Robot.find({format:'json'}));
           router.get('robotsController')
@@ -87,7 +93,9 @@ function(
       robot: Ember.Route.extend({
         route: '/robots/:id',
 
-        redirectsTo: 'navigate',
+        connectOutlets: function( router, conext) {
+          Ember.Route.transitionTo('navigate',context);
+        },
 
         showAllRobots: Ember.Route.transitionTo('robots')
       }),
@@ -111,16 +119,12 @@ function(
 
         /* Initialize the "navigate" state */
         connectOutlets: function(router, context) {
-          // HACK: Set-up periodic refreshing of client state
-          if(! App.interval) {
-            App.interval = setInterval(function(){
-              id = App.router.currentState.client.get('id');
-              App.store.get("_adapter").find(App.store,App.Client,id);
-            }, 1000*10);
-          }
+          //  New HACK for synchronizing current UI view.
+          //  This needs to be done in connectOutlet for each route
+          //  until I can figure out how to add an observer for this
+          App.setClientContext('robot:'+context.id);
 
           this.robot =  App.Robot.find(context.id);
-          this.client = App.Client.find('robot:'+context.id);
           // JAC: NOTE I'm using connectOutlet(<outlet name>,<view>,<context>)
           /* Set the ApplicationView's {{outlet}} to be a RobotView with
            * a RobotController which has a Robot model as context */
@@ -156,15 +160,11 @@ function(
         markers: Ember.Route.transitionTo('markers'),
 
         connectOutlets: function(router, context) {
-          // HACK: Set-up periodic refreshing of client state
-          if(! App.interval) {
-            App.interval = setInterval(function(){
-              id = App.router.currentState.client.get('id');
-              App.store.get("_adapter").find(App.store,App.Client,id);
-            }, 1000*10);
-          }
+          //  New HACK for synchronizing current UI view.
+          //  This needs to be done in connectOutlet for each route
+          //  until I can figure out how to add an observer for this
+          App.setClientContext('robot:'+context.id);
 
-          this.client = App.Client.find('robot:'+context.id);
           // JAC: NOTE I'm using connectOutlet(<outlet name>,<view>,<context>)
           router.get('applicationController').
             connectOutlet('content','robot',App.Robot.find(context.id));
@@ -184,15 +184,11 @@ function(
         markers: Ember.Route.transitionTo('markers'),
 
         connectOutlets: function(router, context) {
-          // HACK: Set-up periodic refreshing of client state
-          if(! App.interval) {
-            App.interval = setInterval(function(){
-              id = App.router.currentState.client.get('id');
-              App.store.get("_adapter").find(App.store,App.Client,id);
-            }, 1000*10);
-          }
+          //  New HACK for synchronizing current UI view.
+          //  This needs to be done in connectOutlet for each route
+          //  until I can figure out how to add an observer for this
+          App.setClientContext('robot:'+context.id);
 
-          this.client = App.Client.find('robot:'+context.id);
           router.get('applicationController').
             connectOutlet('content','robot',App.Robot.find(context.id));
           router.get('robotController').
@@ -215,7 +211,11 @@ function(
         },
 
         connectOutlets: function(router, context) {
-          this.client = App.Client.find('robot:'+context.robot_id);
+          //  New HACK for synchronizing current UI view.
+          //  This needs to be done in connectOutlet for each route
+          //  until I can figure out how to add an observer for this
+          App.setClientContext('robot:'+context.robot_id);
+
           this.robot = App.Robot.find(context.robot_id);
           this.place = App.Place.find(context.place_id);
           router.get('applicationController').
@@ -250,13 +250,10 @@ function(
 
 
         connectOutlets: function(router, context) {
-          // HACK: Set-up periodic refreshing of client state
-          if(! App.interval) {
-            App.interval = setInterval(function(){
-              id = App.router.currentState.client.get('id');
-              App.store.get("_adapter").find(App.store,App.Client,id);
-            }, 1000*10);
-          }
+          //  New HACK for synchronizing current UI view.
+          //  This needs to be done in connectOutlet for each route
+          //  until I can figure out how to add an observer for this
+          App.setClientContext('robot:'+context.robot_id);
 
           router.get('applicationController')
             .connectOutlet('robot', App.Robot.find(context.id));

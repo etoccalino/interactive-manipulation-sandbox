@@ -51,7 +51,11 @@
     #-------------
 
     - name: install libjpeg8
-      action: apt pkg=libjpeg8-dev state=present
+      action: apt pkg=$item state=present
+      with_items:
+        - libjpeg8-dev
+        - redis-server
+        - python-redis
 
     - name: install django pip packages
       action: pip name=$item state=present
@@ -61,12 +65,6 @@
         - python-openid
         - django-openid-auth
         - pillow
-#        - hg+https://bitbucket.org/wkornewald/djangotoolbox
-#        - git+https://github.com/django-nonrel/mongodb-engine
-#        - jinja2
-#        - paramiko
-#        - PyYAML
-#        - django-ember
 
     #-------------
     # ROS

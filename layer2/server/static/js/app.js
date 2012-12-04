@@ -8,13 +8,29 @@ function( Ember, DS, io) {
   var App = Ember.Application.create({
     autoinit: false,
     ready: function() {
+      //  Create a master socket connection to server
+      this.socket = io.connect("/client");
+      //  TODO: Keep track of disconnect events and halt UI in case of disconnect
+      //  TODO: Keep track of current ping time?
+      this.socket.on('context_others',function(data){
+        console.log("Others on page",data);
+      });
+    },
+    setClientContext: function( clientContext) {
+      console.log('New Context: ' + clientContext);
+      this.set('clientContext', clientContext);
+      this.socket.emit("context_new", clientContext);
+      console.log('sent: ' + clientContext);
+    }
+      /*
       console.log("trying to connect ...");
       var socket = io.connect("/client");
       socket.on('connect',function(){
         console.log("connected and emitted");
         socket.emit("new_context", "blah");
       });
-    }
+      */
+    
   });
   window.TheApp = App;
 
