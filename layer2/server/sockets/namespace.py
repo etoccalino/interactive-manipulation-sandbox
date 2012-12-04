@@ -27,8 +27,15 @@ class ClientNamespace(BaseNamespace):
         print "(socket) Session Key = %s" % session.session_key
         self.session_key = session.session_key
 
-        old_context = getattr(self,'context',None)
-        self.context = new_context
+        # TODO: I don't know how to store an instance variable that is kept in the context
+        # of this namespace instance for this particular connection so that I can get ahold
+        # of it from a different socket session (so as to emit updates to others, for example)
+        # so I ended up using redis for this mapping, which I think is overkill
+        # Also, if sessid uniquely identifies a client connection, perhaps I should use that instead
+        # of django's session ID? But then, how can I get ahold of the user information?
+        # TODO: Investigate further the relationship between session.session_key and sessid
+        old_context = redis.get('sessid:%s' % self.socket.sessid)
+        redis.set('sessid:%s' % self.socket.sessid, new_context)
 
         # Delete and notify old context if there is one
         if old_context:
@@ -36,16 +43,21 @@ class ClientNamespace(BaseNamespace):
             self.update_contexts( old_context)
 
         # Update and notify new value
-        redis.hset('context:%s' % new_context, self.session_key, make_user_json)
+        redis.hset('context:%s' % new_context, self.session_key, make_user_json(self.request.user))
         self.update_contexts( new_context)
+
+    # TODO: Implement disconnect to remove from the current context (otherwise phantom users keep piling up)
 
     '''Send a message to all the connected clients which are in the context being updated'''
     def update_contexts( self, context):
         clients = redis.hgetall('context:%s' % context)
         for sessid, socket in self.socket.server.sockets.iteritems():
             print "sessid: %s" % sessid
-            if socket.context == context:
-                socket.emit('context_others', clients)
+            print "client namespace: %s" % socket.namespaces["/client"]
+            sessid_context = redis.get('sessid:%s'%sessid)
+            if sessid_context == context:
+                print "emitting context_others event with %s" % clients
+                socket["/client"].emit('context_others', clients)
         
 def make_user_json( user):
     if user.username == '':
