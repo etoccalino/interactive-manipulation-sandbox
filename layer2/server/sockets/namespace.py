@@ -3,12 +3,9 @@ import redis
 import json
 
 # TODO: See proper place to initilize and maintain connection to redis
-redis = redis.Redis('localhost')
+r = redis.Redis('localhost')
 
 class ClientNamespace(BaseNamespace):
-
-#    def __init__(self, *args, **kwArgs):
-#        super(ClientNamespace, self).__init__(*args,**kwArgs)
 
     '''Called by the client to indicate the user has navigated to another
        page or context within the client application'''
@@ -16,48 +13,63 @@ class ClientNamespace(BaseNamespace):
         # In order to implement this, we use a key store with:
         # - HASH context: set of users in this context. Each user entry contains: userid and names
         # Information to the client will go by registering to updates in the 'context' key
-        print "(socket) New context: %s" % new_context
-
-        # Get the session key, which will identify this particular client
-        # TODO: This should probably be done on a more general connect event and kept
-        # around throughout this user's session
-        session = self.request.session
-        if session.session_key is None:
-            session.save()
-        print "(socket) Session Key = %s" % session.session_key
-        self.session_key = session.session_key
+        self.log("New context: %s" % new_context)
 
         # TODO: I don't know how to store an instance variable that is kept in the context
         # of this namespace instance for this particular connection so that I can get ahold
         # of it from a different socket session (so as to emit updates to others, for example)
         # so I ended up using redis for this mapping, which I think is overkill
-        # Also, if sessid uniquely identifies a client connection, perhaps I should use that instead
-        # of django's session ID? But then, how can I get ahold of the user information?
         # TODO: Investigate further the relationship between session.session_key and sessid
-        old_context = redis.get('sessid:%s' % self.socket.sessid)
-        redis.set('sessid:%s' % self.socket.sessid, new_context)
+        old_context = r.get('sessid:%s' % self.socket.sessid)
+        r.set('sessid:%s' % self.socket.sessid, new_context)
 
         # Delete and notify old context if there is one
         if old_context:
-            redis.hdel('context:%s' % old_context, self.session_key)
+            r.hdel('context:%s' % old_context, self.socket.sessid)
             self.update_contexts( old_context)
 
         # Update and notify new value
-        redis.hset('context:%s' % new_context, self.session_key, make_user_json(self.request.user))
+        r.hset('context:%s' % new_context, self.socket.sessid, make_user_json(self.request.user))
         self.update_contexts( new_context)
 
-    # TODO: Implement disconnect to remove from the current context (otherwise phantom users keep piling up)
+    # Remove from the current context on disconnect (otherwise phantom users keep piling up)
+    def recv_disconnect( self):
+        self.log("disconnect")
+        old_context = r.get('sessid:%s' % self.socket.sessid)
+        if old_context is not None:
+            r.hdel('context:%s' % old_context, self.socket.sessid)
+            r.delete('sessid:%s' % self.socket.sessid)
+
+    def log( self, message):
+        print "(socket %s) %s" % (self.socket.sessid, message)
 
     '''Send a message to all the connected clients which are in the context being updated'''
     def update_contexts( self, context):
-        clients = redis.hgetall('context:%s' % context)
+        # all_clients keeps a hash with all the users connected to this context
+        all_clients = r.hgetall('context:%s' % context)
+
+        # Go through all connected sockets and send updates to clients connected to this context
         for sessid, socket in self.socket.server.sockets.iteritems():
-            print "sessid: %s" % sessid
-            print "client namespace: %s" % socket.namespaces["/client"]
-            sessid_context = redis.get('sessid:%s'%sessid)
+            sessid_context = r.get('sessid:%s' % sessid)
+
+            # If this session is in the updated context, send the update to this user
             if sessid_context == context:
-                print "emitting context_others event with %s" % clients
-                socket["/client"].emit('context_others', clients)
+                # Craft the update data for each user:
+                # 1- Make a copy of the has of all connected users
+                sessid_others = all_clients.copy()
+
+                # 2- Remove this particular user from the update (it wants to know which _other_ users are connected)
+                try:
+                    del sessid_others[sessid]
+                except KeyError:
+                    print "Logic error. Attempting to send update to sessid = [%s] supposedly in context = [%s] but didn't find key for that sessid in key store hash with that context key" % ( sessid, context)
+
+                # 3- Send them in the form of a list
+                list_others = sessid_others.values()
+
+                # Send the update
+                self.log("emitting context_others event with %s" % list_others)
+                socket["/client"].emit('context_others', list_others)
         
 def make_user_json( user):
     if user.username == '':

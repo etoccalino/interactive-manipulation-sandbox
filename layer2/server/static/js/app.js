@@ -10,17 +10,15 @@ function( Ember, DS, io) {
     ready: function() {
       //  Create a master socket connection to server
       this.socket = io.connect("/client");
-      //  TODO: Keep track of disconnect events and halt UI in case of disconnect
-      //  TODO: Keep track of current ping time?
       this.socket.on('context_others',function(data){
         console.log("Others on page",data);
       });
     },
     setClientContext: function( clientContext) {
-      console.log('New Context: ' + clientContext);
-      this.set('clientContext', clientContext);
+      //console.log('New Context: ' + clientContext);
+      //this.set('clientContext', clientContext);
       this.socket.emit("context_new", clientContext);
-      console.log('sent: ' + clientContext);
+      //console.log('sent: ' + clientContext);
     }
       /*
       console.log("trying to connect ...");
