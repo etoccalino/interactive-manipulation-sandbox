@@ -38,6 +38,7 @@ class ClientNamespace(BaseNamespace):
         old_context = r.get('sessid:%s' % self.socket.sessid)
         if old_context is not None:
             r.hdel('context:%s' % old_context, self.socket.sessid)
+            self.update_contexts( old_context)
             r.delete('sessid:%s' % self.socket.sessid)
 
     def log( self, message):
