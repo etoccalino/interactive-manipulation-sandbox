@@ -10,24 +10,16 @@ function( Ember, DS, io) {
     ready: function() {
       //  Create a master socket connection to server
       this.socket = io.connect("/client");
-      this.socket.on('context_others',function(data){
-        console.log("Others on page",data);
+      //  Update the client model whenever we get an update from the server
+      this.socket.on('context_others',function(other_users){
+        console.log("Others on page", other_users);
+        App.client.set('other_users', other_users);
       });
     },
     setClientContext: function( clientContext) {
-      //console.log('New Context: ' + clientContext);
-      //this.set('clientContext', clientContext);
+      //  Inform the server that we're in a new context now
       this.socket.emit("context_new", clientContext);
-      //console.log('sent: ' + clientContext);
     }
-      /*
-      console.log("trying to connect ...");
-      var socket = io.connect("/client");
-      socket.on('connect',function(){
-        console.log("connected and emitted");
-        socket.emit("new_context", "blah");
-      });
-      */
     
   });
   window.TheApp = App;

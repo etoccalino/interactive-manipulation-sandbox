@@ -29,7 +29,7 @@ class ClientNamespace(BaseNamespace):
             self.update_contexts( old_context)
 
         # Update and notify new value
-        r.hset('context:%s' % new_context, self.socket.sessid, make_user_json(self.request.user))
+        r.hset('context:%s' % new_context, self.socket.sessid, json.dumps(make_user(self.request.user)))
         self.update_contexts( new_context)
 
     # Remove from the current context on disconnect (otherwise phantom users keep piling up)
@@ -47,6 +47,10 @@ class ClientNamespace(BaseNamespace):
     def update_contexts( self, context):
         # all_clients keeps a hash with all the users connected to this context
         all_clients = r.hgetall('context:%s' % context)
+        # Deserialize (I don't know why the redis API doesn't do this automatically)
+        for k, v in all_clients.items():
+            self.log("deserializing: %s" % v)
+            all_clients[k] = json.loads(v)
 
         # Go through all connected sockets and send updates to clients connected to this context
         for sessid, socket in self.socket.server.sockets.iteritems():
@@ -71,7 +75,7 @@ class ClientNamespace(BaseNamespace):
                 self.log("emitting context_others event with %s" % list_others)
                 socket["/client"].emit('context_others', list_others)
         
-def make_user_json( user):
+def make_user( user):
     if user.username == '':
         return {
             'username': 'AnonymousUser',

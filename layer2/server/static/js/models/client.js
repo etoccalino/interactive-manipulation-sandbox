@@ -9,11 +9,12 @@ function(
   App
 ) {
 
-  App.Client = DS.Model.extend({
-    username: DS.attr('string'),
-    first_name: DS.attr('string'),
-    last_name: DS.attr('string'),
-    other_users: DS.attr('string'),
+  //App.Client = DS.Model.extend({
+  App.client = Ember.Object.create({
+    username: '',
+    first_name: '',
+    last_name: '',
+    other_users: [],
     isLoggedIn: function() {
       loggedin = (this.get('username') != "AnonymousUser");
       return loggedin;

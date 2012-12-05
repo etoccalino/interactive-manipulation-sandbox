@@ -86,7 +86,7 @@ function(
           router.get('applicationController')
             .connectOutlet('content', 'robots', App.Robot.find({format:'json'}));
           router.get('robotsController')
-            .connectOutlet('client', 'client', this.client);
+            .connectOutlet('client', 'client', App.client);
         }
       }),
 
@@ -133,7 +133,7 @@ function(
           /* And also update the client status information view with the new
            * application context (i.e.: where the user is now in the app) */
           router.get('robotController').
-            connectOutlet('periphery','client',App.Client.find('robot:'+context.id)); 
+            connectOutlet('periphery','client',App.client); 
           /* Set the RobotView's {{outlet}} to be a NavigateView with
            * a NagivateController which has a Robot model as context */
           router.get('robotController')
@@ -169,7 +169,7 @@ function(
           router.get('applicationController').
             connectOutlet('content','robot',App.Robot.find(context.id));
           router.get('robotController').
-            connectOutlet('periphery','client',App.Client.find('robot:'+context.id));
+            connectOutlet('periphery','client',App.client);
           router.get('robotController')
             .connectOutlet('main', 'plug', App.Robot.find(context.id));
         }
@@ -192,7 +192,7 @@ function(
           router.get('applicationController').
             connectOutlet('content','robot',App.Robot.find(context.id));
           router.get('robotController').
-            connectOutlet('periphery','client',App.Client.find('robot:'+context.id));
+            connectOutlet('periphery','client',App.client);
           router.get('robotController')
             .connectOutlet('main', 'look', App.Robot.find(context.id));
         }
@@ -221,7 +221,7 @@ function(
           router.get('applicationController').
             connectOutlet('content','robot',this.robot);
           router.get('robotController').
-            connectOutlet('periphery','client',this.client);
+            connectOutlet('periphery','client',App.client);
           router.get('robotController').
             connectOutlet('main', 'navigating', Ember.Object.create({
               robot: this.robot,
@@ -258,7 +258,7 @@ function(
           router.get('applicationController')
             .connectOutlet('robot', App.Robot.find(context.id));
           router.get('robotController').
-            connectOutlet('periphery','client',App.Client.find('robot:'+context.id));
+            connectOutlet('periphery','client',App.client);
           router.get('robotController')
             .connectOutlet('main', 'markers', App.Robot.find(context.id));
         }
