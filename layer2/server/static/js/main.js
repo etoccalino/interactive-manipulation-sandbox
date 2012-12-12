@@ -4,6 +4,7 @@ requirejs.config({
 
   paths: {
     jquery       : 'libs/jquery',
+    blockUI      : 'libs/jquery.blockUI',
     d3           : 'libs/d3',
     // Ember
     handlebars   : 'libs/handlebars',
@@ -30,7 +31,7 @@ requirejs.config({
       exports: 'Handlebars'
     },
     'ember': {
-      deps    : ['jquery', 'handlebars'],
+      deps    : ['jquery', 'blockUI', 'handlebars'],
       exports : 'Ember'
     },
     'emberdata': {
@@ -48,4 +49,3 @@ function( App, Router) {
   $(".loading").remove();
   App.initialize();
 });
-
