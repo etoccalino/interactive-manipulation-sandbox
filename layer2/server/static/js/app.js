@@ -1,32 +1,50 @@
 define([
   'ember',
   'emberdata',
-  'io'
+  'io',
 ],
 function( Ember, DS, io) {
 
   var App = Ember.Application.create({
     autoinit: false,
     ready: function() {
+
       //  Create a master socket connection to server
-      this.socket = io.connect("/client");
+      this.socket = io.connect("/client", {
+        'reconnection limit': 3000,
+        'max reconnection attempts': 100 // Attempt to reconnect for roughly 5 minutes.
+      });
+
       //  Update the client model whenever we get an update from the server
       this.socket.on('context_others',function(other_users){
         console.log("Others on page", other_users);
         App.client.set('other_users', other_users);
       });
+
+      // Disconnect-reconnect routine.
+      this.socket.on('disconnect', function(){
+        $.blockUI({ message: null });
+      });
+      this.socket.on('reconnecting', function(){
+        // Event fired inmediatly before an attempt to reach the server.
+        console.log('...trying to reconnect...');
+      });
+      this.socket.on('reconnect', function(){
+        $.unblockUI();
+      });
+
     },
     setClientContext: function( clientContext) {
       //  Inform the server that we're in a new context now
       this.socket.emit("context_new", clientContext);
     }
-    
+
   });
   window.TheApp = App;
 
   /* Overriding behavior in RESTAdapter to handle responses of the type
       [{ object },{ object }, ...]
-    as returned by default in django-rest-framework 
+    as returned by default in django-rest-framework
     instead of currently required:
       { robots: [{ object },{ object }, ...]}
 
@@ -80,11 +98,10 @@ function( Ember, DS, io) {
     }
   });
 
-  App.store = DS.Store.create({ 
+  App.store = DS.Store.create({
     revision: 6,
     adapter: DS.DjangoRESTAdapter.create({ namespace: 'world/api' })
   });
 
   return App;
 });
-
