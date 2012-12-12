@@ -11,8 +11,12 @@ function( Ember, DS, io) {
 
       //  Create a master socket connection to server
       this.socket = io.connect("/client", {
+
+        // Maximum number of milliseconds between reconnect attempts.
         'reconnection limit': 3000,
-        'max reconnection attempts': 100 // Attempt to reconnect for roughly 5 minutes.
+
+        // Attempt to reconnect for roughly 5 minutes.
+        'max reconnection attempts': 100
       });
 
       //  Update the client model whenever we get an update from the server
