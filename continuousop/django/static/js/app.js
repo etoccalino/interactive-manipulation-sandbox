@@ -2,8 +2,7 @@ define([
   'ember',
   'emberdata',
   'jquery',
-  'socketio',
-  'socketio_healthcheck',
+  'socketio'
 ],
 function(
   Ember,
@@ -23,7 +22,10 @@ function(
         'reconnection limit': 3000,
 
         // Attempt to reconnect for roughly 5 minutes.
-        'max reconnection attempts': 100
+        'max reconnection attempts': 100,
+
+        healthcheck: true
+
       });
 
       // Disconnect-reconnect routine.
@@ -50,11 +52,6 @@ function(
       //  The server notifies us that users in this same page have changed
       this.socket.on('context_others',function(other_users){
         App.client.set('other_users', other_users);
-      });
-
-      // Extend the socket object with information about connection health.
-      io_health.extend(this.socket, function(data){
-        App.client.set('connection_latency', data.latency);
       });
 
     },
