@@ -9,9 +9,6 @@ be mixed in to a BaseNamespace descendant.
 """
 
 
-from socketio.namespace import BaseNamespace
-
-
 class HealthMonitorMixin(object):
     """
     A mixin for the socketio.namespace.BaseNamespace.
@@ -25,23 +22,12 @@ class HealthMonitorMixin(object):
         latency: (number) approximate client lantency in milliseconds.
         timestamp: (number) milliseconds since epoch; used by client.
     }
-
     """
 
-    HEALTH_CHECK_BOUNCE_EVENT_NAME = "health check"
+    def on_health_check(self, healthcheck_packet):
+        """Acknowledge the health check.
 
-    def on_health_check(self, health_monitor_packet):
-        # Bounce a "health check" packet back to the client.
-        self.emit(self.HEALTH_CHECK_BOUNCE_EVENT_NAME, health_monitor_packet)
-
-        print "HEALTH CHECK:", health_monitor_packet
-
-
-class HealthMonitor(BaseNamespace):
-
-    def on_health_check(self, health_monitor_packet):
-        # Bounce a "health check" packet back to the client.
-        self.emit(HealthMonitorMixin.HEALTH_CHECK_BOUNCE_EVENT_NAME,
-                  health_monitor_packet)
-
-        print "HEALTH CHECK:", health_monitor_packet
+        Returning an iterable, send back the parameters to be passed to the
+        acknowledge callback in the client.
+        """
+        return [healthcheck_packet['timestamp']]

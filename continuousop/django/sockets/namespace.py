@@ -42,7 +42,7 @@ def make_user( user):
             'last_name': user.last_name
         }
 
-class ClientNamespace(BaseNamespace):
+class ClientNamespace(BaseNamespace, HealthMonitorMixin):
 
     '''Called by the client to indicate the user has navigated to another
        page or context within the client application'''
