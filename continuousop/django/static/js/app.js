@@ -54,7 +54,6 @@ function(
 
       // Connection latency has changed, update.
       this.socket.on('latency changed', function (update) {
-        console.log('UPDATING LATENCY...');
         App.client.set('connection_latency', update.latency);
       });
 
