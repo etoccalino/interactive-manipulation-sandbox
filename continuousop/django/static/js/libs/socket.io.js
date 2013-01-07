@@ -2330,9 +2330,6 @@ var io = ('undefined' === typeof module ? {} : module.exports);
 
   function healthchecked (namespace, options) {
 
-    // Extend by prototype inheritance.
-    // var self = Object.create(namespace, healthchecked.prototype);
-
     // Extend by method reference copying.
     var self = namespace;
     for (var p in healthchecked.prototype) {
@@ -2346,7 +2343,7 @@ var io = ('undefined' === typeof module ? {} : module.exports);
     // Setup the latency related data container for this socket namespace.
     self.resetHealthcheckData();
 
-    // options && io.util.mixin(self.healthcheck.config, options);
+    options && io.util.merge(self.healthcheck.config, options);
 
     self.on('connect', self.checkup);
 
