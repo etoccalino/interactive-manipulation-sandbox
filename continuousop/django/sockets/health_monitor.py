@@ -34,6 +34,9 @@ class HealthMonitorMixin(object):
         Returning an iterable, send back the parameters to be passed to the
         acknowledge callback in the client.
         """
+        if not hasattr(self, '_connection_latency'):
+            self._connection_latency = 0
+
         prev_latency = self._connection_latency
         latency = healthcheck_packet['latency']
         if prev_latency != latency:
