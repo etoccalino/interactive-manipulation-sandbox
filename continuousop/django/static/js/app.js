@@ -8,8 +8,7 @@ function(
   Ember,
   DS,
   $,
-  io,
-  io_health
+  io
 ) {
   var App = Ember.Application.create({
     autoinit: false,
@@ -23,10 +22,9 @@ function(
 
         // Attempt to reconnect for roughly 5 minutes.
         'max reconnection attempts': 100,
-
-        healthcheck: true
-
       });
+      // Regular connection health checkups for the socket.
+      this.socket = io.healthchecked(this.socket);
 
       // Disconnect-reconnect routine.
       this.socket.on('disconnect', function(){
@@ -52,6 +50,12 @@ function(
       //  The server notifies us that users in this same page have changed
       this.socket.on('context_others',function(other_users){
         App.client.set('other_users', other_users);
+      });
+
+      // Connection latency has changed, update.
+      this.socket.on('latency changed', function (update) {
+        console.log('UPDATING LATENCY...');
+        App.client.set('connection_latency', update.latency);
       });
 
     },
