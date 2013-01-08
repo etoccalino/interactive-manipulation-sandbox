@@ -2306,11 +2306,6 @@ var io = ('undefined' === typeof module ? {} : module.exports);
     'undefined' != typeof io ? io : module.exports
   , 'undefined' != typeof io ? io : module.parent.exports
 );
-/**
- * socket.io
- * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
- * MIT Licensed
- */
 
 (function (exports, io, global) {
 
@@ -2330,7 +2325,12 @@ var io = ('undefined' === typeof module ? {} : module.exports);
 
   function healthchecked (namespace, options) {
 
-    // Extend by method reference copying.
+    // Avoid calling on the same underlying Socket object more than once.
+    if (namespace.socket.healthchecked) {
+      return namespace;
+    }
+
+    // Extend by copying method references.
     var self = namespace;
     for (var p in healthchecked.prototype) {
       if (healthchecked.prototype.hasOwnProperty(p)) {
@@ -2350,6 +2350,9 @@ var io = ('undefined' === typeof module ? {} : module.exports);
     self.on('disconnect', function () {
       self.healthcheck._timeout && clearTimeout(self.healthcheck._timeout);
     });
+
+    // Mark the underlying socket object as healthchecked.
+    self.socket.healthchecked = true;
 
     return self;
   };
@@ -2405,7 +2408,7 @@ var io = ('undefined' === typeof module ? {} : module.exports);
 
     // Expose the latency change to the application logic.
     if (prevLatency !== this.healthcheck.data.latency) {
-      this.$emit('latency changed', {latency: this.healthcheck.data.latency});
+      this.$emit('latency changed', this.healthcheck.data.latency);
     };
 
     this.healthcheck._timeout = setTimeout(

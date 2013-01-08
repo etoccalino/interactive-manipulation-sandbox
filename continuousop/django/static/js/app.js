@@ -21,7 +21,7 @@ function(
         'reconnection limit': 3000,
 
         // Attempt to reconnect for roughly 5 minutes.
-        'max reconnection attempts': 100,
+        'max reconnection attempts': 100
       });
       // Regular connection health checkups for the socket.
       this.socket = io.healthchecked(this.socket);
@@ -53,8 +53,8 @@ function(
       });
 
       // Connection latency has changed, update.
-      this.socket.on('latency changed', function (update) {
-        App.client.set('connection_latency', update.latency);
+      this.socket.on('latency changed', function (latency) {
+        App.client.set('connection_latency', latency);
       });
 
     },
