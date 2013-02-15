@@ -171,27 +171,34 @@ function( Ember, DS, App, ROS, Action) {
           _this.set('status_code', 1);
 
           _this.topic_dashboard = new _this.ros.Topic({
-            name: '/dashboard_agg',
-            messageType: 'pr2_msgs/DashboardState'
+            name: '/diagnostics_agg',
+            messageType: 'diagnostic_msgs/DiagnosticArray'
           });
           _this.topic_dashboard.subscribe(function(message) {
-            _this.set('battery', message.power_state.relative_capacity);
-            _this.set('plugged_in_value', message.power_state.AC_present);
-            if (message.power_board_state) {
-              if (message.power_board_state.wireless_stop && message.power_board_state.run_stop) {
-                _this.set('runstop_activated', false);
-              } else {
-                _this.set('runstop_activated', true);
+            for (var i=0; i<message.status.length; i++) {
+              var s = message.status[i];
+              if (s.name === '/Power System/Battery') {
+                for (var j=0; j<s.values.length; j++) {
+                  var value = s.values[j];
+                  if (value.key === 'Percent') {
+                    _this.set('battery', value.value);
+                  } else if (value.key === 'Charging State') {
+                    if (value.value === 'Full Charging') {
+                      _this.set('plugged_in_value', true);
+                    } else {
+                      _this.set('plugged_in_value', false);
+                    }
+                  }
+                }
+              } else if (s.name === '/Other/mobile_base_nodelet_manager: Motor State') {
+                if (s.message === 'Motors Enabled') {
+                  _this.set('motors_not_halted', true);
+                } else {
+                  _this.set('motors_not_halted', false);
+                }
               }
-            } else {
-              _this.set('runstop_activated', null);
             }
 
-            if (message.motors_halted_valid) {
-              _this.set('motors_not_halted', !(message.motors_halted.data));
-            } else {
-              _this.set('motors_not_halted', null);
-            }
           });
           _this.ros.on('close',function() {
             _this.set('status_code',2);
@@ -200,13 +207,14 @@ function( Ember, DS, App, ROS, Action) {
 
           // Subscribe to pose messages
           _this.topic_pose = new _this.ros.Topic({
-            name: '/robot_pose',
-            messageType: 'geometry_msgs/Pose'
+            name: '/amcl_pose',
+            messageType: 'geometry_msgs/PoseWithCovarianceStamped'
           });
           _this.topic_pose.subscribe(function(message) {
+            console.log("Pose message received:", message);
             _this.set('pose', {
-              'x' : message.position.x,
-              'y' : message.position.y
+              'x' : message.pose.pose.position.x,
+              'y' : message.pose.pose.position.y
               });
           });
           _this.ros.on('close',function() {
@@ -237,19 +245,26 @@ function( Ember, DS, App, ROS, Action) {
     reset_motors: function(ev) {
       // ros.Service provides an interface to calling ROS services.
       // Creates a rospy_tutorials/AddTwoInts service client named /add_two_ints.
-      var reset_motors = new this.ros.Service({
-        name        : '/pr2_etherCAT/reset_motors',
-        serviceType : 'std_srvs/Empty'
+//      var reset_motors = new this.ros.Service({
+//        name        : '/pr2_etherCAT/reset_motors',
+//        serviceType : 'std_srvs/Empty'
+//      });
+
+      var reset_motors = new this.ros.Topic({
+        name        : '/mobile_base/commands/motor_power',
+        messageType : 'kobuki_msgs/MotorPower'
       });
 
-      // ros.ServiceRequest contains the data to send in the service call.
-      var request = new this.ros.ServiceRequest();
 
       console.log('Sending reset_motors service call');
+      reset_motors.publish({'state': 1});
+
+      /*
       reset_motors.callService(request, function(result) {
         // Callback when it finishes
         console.log('Result for reset_motors call:', result);
       });
+      */
     },
 
 
@@ -258,6 +273,7 @@ function( Ember, DS, App, ROS, Action) {
 
     navigateTo: function(place) {
       // Sanity checks to make sure we are navigating to a reasonable place
+      /*
       if (!place.get('pose_x') || !place.get('pose_y')) {
         this.set('progress_update', 'Invalid navigation coordinates');
         // Redirect to navigate view. We probably got here because the user
@@ -265,55 +281,27 @@ function( Ember, DS, App, ROS, Action) {
         App.get('router').send('navigate', this);
         return;
       }
+      */
 
       // Make sure we aren't plugged in first
+      /*
       if (this.get('plugged_in')) {
         this.set('progress_update', 'Please unplug before navigating');
         return;
       }
+      */
 
-      // First tuck arms before navigating
-      this.set('progress_update', 'Tucking arms...');
-
-      var action = new Action({
-        ros: this.ros,
-        name: 'TuckArms'
-      });
-      action.inputs.tuck_left = true;
-      action.inputs.tuck_right = true;
-
-      var _this = this;
-      action.on('result', function(result) {
-        console.log('Received result from tucking arms: ', result);
-        _this.set('progress_update', 'Tucking arms ' + result.outcome);
-        if (result.outcome === 'succeeded') {
-          // Tuckarms worked, now go
-          _this._pointHeadForward(function() {
-            _this._navigateTo2(place);
-          });
-        } else {
-          _this.set('progress_update', 'Arms not tucked, navigating anyway');
-        }
-      });
-
-      console.log('Sending TuckArm action');
-      action.inputs.tuck_left = true;
-      action.inputs.tuck_right = true;
-      console.log('Sending TuckArm action');
-      action.execute();
-    },
-
-    _navigateTo2: function(place) {
+      // Navigate to pose
       this.set('progress_update', 'Navigating to ' + place.get('name'));
       var action = new Action({
         ros: this.ros,
-        name: 'NavigateToPose'
+        name: 'turtlebin/NavigateToPose'
       });
 
       // Get notified when navigation finishes
       var _this = this;
       action.on('result', function(result) {
-        console.log('navigation result: ' + result.outcome);
+        console.log('navigation result: ' + result);
         _this.set('progress_update', 'Navigation ' + result.outcome);
         // Return to navigation view
         App.get('router').send('navigate', _this);
@@ -516,112 +504,48 @@ function( Ember, DS, App, ROS, Action) {
     // Move the base using open-loop control
 
     moveForward: function() {
-      this.set('progress_update', 'Moving forward');
-      var action = new Action({
-        ros: this.ros,
-        name: 'NavigateToPose'
-      });
-
-      action.inputs.x                  = 0.2;
-      action.inputs.y                  = 0.0;
-      action.inputs.theta              = 0.0;
-      action.inputs.collision_aware    = false;
-      action.inputs.frame_id           = '/base_footprint';
-
       var _this = this;
-      action.on('result', function(result) {
-        if (result.outcome === 'succeeded') {
-          // It worked!
-          _this.set('progress_update', '');
-        }
-        else {
-          _this.set('progress_update', 'Move action failed');
-        }
-      });
+      this.set('progress_update', 'Moving forward');
 
-      action.execute();
-      console.log('Calling NavigateToPose action with parameters: ', action.inputs);
+      // Send the action to the server.
+      console.log('Sending NavigateToPose action to the server.');
+      MyApp.socket.emit('move forward').once('robot stopped', function() {
+        _this.set('progress_update', '');
+      });
     },
     moveBack: function() {
-      this.set('progress_update', 'Moving backward');
-      var action = new Action({
-        ros: this.ros,
-        name: 'NavigateToPose'
-      });
-
-      action.inputs.x                  = -0.2;
-      action.inputs.y                  = 0.0;
-      action.inputs.theta              = 0.0;
-      action.inputs.collision_aware    = false;
-      action.inputs.frame_id           = '/base_footprint';
-
       var _this = this;
-      action.on('result', function(result) {
-        if (result.outcome === 'succeeded') {
-          // It worked!
-          _this.set('progress_update', '');
-        }
-        else {
-          _this.set('progress_update', 'Move action failed');
-        }
-      });
+      this.set('progress_update', 'Moving backward');
 
-      action.execute();
-      console.log('Calling NavigateToPose action with parameters: ', action.inputs);
+      // Send the action to the server.
+      console.log('Sending NavigateToPose action to the server.');
+      MyApp.socket.emit('move back').once('robot stopped', function() {
+        _this.set('progress_update', '');
+      });
     },
     turnLeft: function() {
-      this.set('progress_update', 'Turning left');
-      var action = new Action({
-        ros: this.ros,
-        name: 'NavigateToPose'
-      });
-
-      action.inputs.x                  = 0.0;
-      action.inputs.y                  = 0.0;
-      action.inputs.theta              = 0.20;
-      action.inputs.collision_aware    = false;
-      action.inputs.frame_id           = '/base_footprint';
-
       var _this = this;
-      action.on('result', function(result) {
-        if (result.outcome === 'succeeded') {
-          // It worked!
-          _this.set('progress_update', '');
-        }
-        else {
-          _this.set('progress_update', 'Move action failed');
-        }
-      });
+      this.set('progress_update', 'Turning left');
 
-      action.execute();
-      console.log('Calling NavigateToPose action with parameters: ', action.inputs);
+      // Send the action to the server.
+      console.log('Sending NavigateToPose action to the server.');
+      MyApp.socket.emit('turn left').once('robot stopped', function() {
+        _this.set('progress_update', '');
+      });
     },
     turnRight: function() {
-      this.set('progress_update', 'Turning right');
-      var action = new Action({
-        ros: this.ros,
-        name: 'NavigateToPose'
-      });
-
-      action.inputs.x                  = 0.0;
-      action.inputs.y                  = 0.0;
-      action.inputs.theta              = -0.20;
-      action.inputs.collision_aware    = false;
-      action.inputs.frame_id           = '/base_footprint';
-
       var _this = this;
-      action.on('result', function(result) {
-        if (result.outcome === 'succeeded') {
-          // It worked!
-          _this.set('progress_update', '');
-        }
-        else {
-          _this.set('progress_update', 'Move action failed');
-        }
-      });
+      this.set('progress_update', 'Turning right');
 
-      action.execute();
-      console.log('Calling NavigateToPose action with parameters: ', action.inputs);
+      // Send the action to the server.
+      console.log('Sending NavigateToPose action to the server.');
+      MyApp.socket.emit('turn right').once('robot stopped', function() {
+        _this.set('progress_update', '');
+      });
+    },
+    stopMoving: function () {
+      console.log('Stop NavigateToPose motion, send to the server.');
+      MyApp.socket.emit('stop moving');
     },
 
     // ----------------------------------------------------------------------
