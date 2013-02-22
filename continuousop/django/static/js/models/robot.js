@@ -119,13 +119,13 @@ function( Ember, DS, App, ROS, Action) {
         map_x = -1;
       }
       else {
-        map_x = -3.2371041 * pose.x + -7.70845759 * pose.y + 564.53259318;
+        map_x = pose.x * 41.893833 + pose.y * -6.064490 + 143.505863;
       }
       if (pose.y === -1) {
         map_y = -1;
       }
       else {
-        map_y = -7.90508822 * pose.x + 3.38653133 * pose.y + 295.37609582;
+        map_y = pose.x * -7.040622 + pose.y * -42.326424 + 143.429741;
       }
       return {'x' : map_x, 'y' : map_y};
     },
@@ -273,7 +273,6 @@ function( Ember, DS, App, ROS, Action) {
 
     navigateTo: function(place) {
       // Sanity checks to make sure we are navigating to a reasonable place
-      /*
       if (!place.get('pose_x') || !place.get('pose_y')) {
         this.set('progress_update', 'Invalid navigation coordinates');
         // Redirect to navigate view. We probably got here because the user
@@ -281,15 +280,12 @@ function( Ember, DS, App, ROS, Action) {
         App.get('router').send('navigate', this);
         return;
       }
-      */
 
       // Make sure we aren't plugged in first
-      /*
       if (this.get('plugged_in')) {
         this.set('progress_update', 'Please unplug before navigating');
         return;
       }
-      */
 
       // Navigate to pose
       this.set('progress_update', 'Navigating to ' + place.get('name'));
@@ -302,7 +298,7 @@ function( Ember, DS, App, ROS, Action) {
       var _this = this;
       action.on('result', function(result) {
         console.log('navigation result: ' + result);
-        _this.set('progress_update', 'Navigation ' + result.outcome);
+        _this.set('progress_update', 'Navigation finished');
         // Return to navigation view
         App.get('router').send('navigate', _this);
       });
@@ -339,7 +335,7 @@ function( Ember, DS, App, ROS, Action) {
 
       var action = new Action({
         ros: this.ros,
-        name: 'Unplug'
+        name: 'turtlebin/Undock'
       });
 
       var _this = this;
@@ -353,15 +349,10 @@ function( Ember, DS, App, ROS, Action) {
         console.log('unplug result: ' + result.outcome);
         _this.set('progress_update', 'Unplugging ' + result.outcome);
         if (result.outcome === 'succeeded') {
-          // Unplug worked, now tuck arms
-          _this._tuckArms(function() {
-            _this._pointHeadForward(function() {
-              _this.set('progress_update', 'Unplugging successful');
-              _this.set('is_plugging_in', false);
-            });
-          }, onError);
-
+          // Unplug worked, we're done
+          _this.set('is_plugging_in', false);
         } else {
+          // It failed, but we're still done
           _this.set('is_plugging_in', false);
         }
       });
@@ -471,7 +462,7 @@ function( Ember, DS, App, ROS, Action) {
 
       var action = new Action({
         ros: this.ros,
-        name: 'PlugIn'
+        name: 'turtlebin/Dock'
       });
       var _this = this;
       //myDebugEvents( action, this.get('name') + ' plugIn action', ['result','status','feedback']);
@@ -488,11 +479,7 @@ function( Ember, DS, App, ROS, Action) {
         }
         else {
           // TODO: notify the user that plugging in failed
-          // and point our head forwards
-          _this._pointHeadForward(function() {
-            _this.set('is_plugging_in', false);
-          });
-
+          _this.set('is_plugging_in', false);
         }
 
       });
@@ -551,6 +538,7 @@ function( Ember, DS, App, ROS, Action) {
     // ----------------------------------------------------------------------
     // Manipulating objects in the world
 
+    // These are the objects that segment-and-recognize has detected in front of the robot
     recognized_objects: {},
 
     segmentAndRecognize: function(pickupController) {
@@ -758,7 +746,8 @@ function( Ember, DS, App, ROS, Action) {
         console.log('Result from NavigateToPose:', result);
         if (result.outcome === 'succeeded') {
           // It worked!
-          _this.set('progress_update', 'Finished docking with table');
+          _this.set('progress_update', 'Moving forward successful');
+          _this._dockWithTable6();
         } else {
           _this.set('progress_update', 'Failed to move torso');
         }
@@ -766,7 +755,44 @@ function( Ember, DS, App, ROS, Action) {
       action.execute();
     },
 
+    _dockWithTable6: function() {
+      // Finally look down at the table
+      this.set('progress_update', 'Looking down');
+
+      var action = new Action({
+        ros: this.ros,
+        name: 'PointHead'
+      });
+
+      // Get notified when head movement finishes
+      var _this = this;
+      action.on('result', function(result) {
+        _this.set('progress_update', 'Look forward ' + result.outcome);
+        // Regardless of outcome, tell the UI to say that plugging is done
+        if (result.outcome === 'succeeded') {
+          // It worked!
+          _this.set('progress_update', 'Finished docking with table');
+        } else {
+          _this.set('progress_update', 'Failed to look at table');
+        }
+      });
+
+      action.inputs.target_frame   = 'torso_lift_link';
+      action.inputs.target_x       = 1.0;
+      action.inputs.target_y       = 0;
+      action.inputs.target_z       = -0.4;
+      action.inputs.pointing_frame = 'head_mount_kinect_rgb_optical_frame';
+      action.inputs.pointing_x     = 0.0;
+      action.inputs.pointing_y     = 0.0;
+      action.inputs.pointing_z     = 1.0;
+      action.execute();
+      console.log('Calling PointHead action', action.inputs);
+    },
+
     undockFromTable: function() {
+      // Clear out the recognized objects since we'll be moving around and the data is stale
+      this.set('recognized_objects', {});
+
       // First move backwards a bit
       this.set('progress_update', 'Moving backwards');
 
@@ -847,19 +873,6 @@ function( Ember, DS, App, ROS, Action) {
 
     _undockFromTable4: function() {
       this.set('progress_update', 'Undocked from table');
-    },
-
-
-    // ----------------------------------------------------------------------
-    // Stop everything now!
-
-    cancelAllActions: function() {
-      var action = new Action({
-        ros: this.ros
-      });
-
-      this.set('progress_update', 'Canceling all robot instructions');
-      action.cancelAll();
     }
 
   });
