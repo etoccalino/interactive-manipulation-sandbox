@@ -143,7 +143,7 @@ function(
             router.get('robotController')
               .connectOutlet('main', 'touch', robot);
             router.get('touchController')
-              .connectOutlet('move', robot);
+              .connectOutlet('plug', robot);
           }
         }),
 
