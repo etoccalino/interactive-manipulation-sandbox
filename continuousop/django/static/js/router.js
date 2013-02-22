@@ -73,7 +73,7 @@ function(
       robots: Ember.Route.extend({
         route: '/robots',
 
-        showRobot: Ember.Route.transitionTo('robot.navigate'),
+        showRobot: Ember.Route.transitionTo('robot.touch'),
 
         connectOutlets: function(router) {
           //  New HACK for synchronizing current UI view.
