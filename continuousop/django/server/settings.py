@@ -153,7 +153,6 @@ INSTALLED_APPS = (
     # Other dependencies
     'rest_framework',
     'django_openid_auth',
-    'south',
 
     # Server applications
     'sockets',
