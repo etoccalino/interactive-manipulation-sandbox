@@ -189,8 +189,4 @@ LOGGING = {
     }
 }
 
-try:
-    from server.local_settings import *
-    print "Using settings from local_settings.py"
-except ImportError:
-    print "Local settings not found.\nNOTE: If you want to override django settings for this particular computer, please create a local_settings.py file in your root django directory and perform any desired configuration there"
+from server.local_settings import *

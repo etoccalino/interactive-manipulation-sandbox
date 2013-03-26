@@ -36,7 +36,7 @@ class Camera(models.Model):
         return "%s (%s)" % (self.name, self.url)
 
 
-class RobotManager(models.Magnager):
+class RobotManager(models.Manager):
 
     def current(self):
         try:
